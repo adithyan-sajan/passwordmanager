@@ -3,6 +3,7 @@ from tkinter import *
 from tkinter import simpledialog
 from functools import partial
 
+
 #-----------------------------DB-----------------------------------------
 
 with sqlite3.connect("vault.db") as db:
@@ -84,6 +85,8 @@ def firstScreen():
     btn1 = Button(window, text="Submit", command=savePassword)
     btn1.pack()
 
+    
+# EasterEgg:Built For JyothiEngineeringCollege
 
 def loginScreen():
     window.geometry("300x150")
