@@ -2,8 +2,9 @@ import sqlite3, hashlib
 from tkinter import *
 from tkinter import simpledialog
 from functools import partial
+import pyperclip
 
-#-----------------------------DB-----------------------------------------
+# -----------------------------DB-----------------------------------------
 
 with sqlite3.connect("vault.db") as db:
     cursor = db.cursor()
@@ -24,13 +25,12 @@ password TEXT NOT NULL
 );
 """)
 
-#------------------------------Pop-up---------------------------------------
+
+# ------------------------------Pop-up---------------------------------------
 
 def popUp(text):
-    answer = simpledialog.askstring("input String",text)
+    answer = simpledialog.askstring("input String", text)
     return answer
-
-
 
 
 # ----------------------------GUI--------------------------------------------
@@ -40,12 +40,14 @@ window = Tk()
 window.title("vault")
 
 
+
+
+
 def hashPassword(input):
     hash = hashlib.md5(input)
     hash = hash.hexdigest()
 
     return hash
-
 
 
 def firstScreen():
@@ -64,7 +66,6 @@ def firstScreen():
     txt2 = Entry(window, width=20, show="*")
     txt2.pack(pady=10)
 
-
     lbl3 = Label(window, text="")
     lbl3.pack()
 
@@ -73,11 +74,11 @@ def firstScreen():
             hashedPassword = hashPassword(txt1.get().encode('utf-8'))
             insert_password = """INSERT INTO masterpassword(password)
             VALUES(?)"""
-            cursor.execute(insert_password,[(hashedPassword)])
+            cursor.execute(insert_password, [(hashedPassword)])
             db.commit()
             passwordVault()
         else:
-            txt1.delete(0,'end')
+            txt1.delete(0, 'end')
             txt2.delete(0, 'end')
             lbl3.config(text="Keys don't match")
 
@@ -100,7 +101,7 @@ def loginScreen():
 
     def getMasterKey():
         checkHashedPassword = hashPassword(txt1.get().encode('utf-8'))
-        cursor.execute("SELECT * FROM masterpassword WHERE id = 1 AND password = ?",[(checkHashedPassword)])
+        cursor.execute("SELECT * FROM masterpassword WHERE id = 1 AND password = ?", [(checkHashedPassword)])
         return cursor.fetchall()
 
     def checkPassword():
@@ -131,54 +132,85 @@ def passwordVault():
         VALUES(?,?,?)
         """
 
-        cursor.execute(insert_fields,(website,username,password))
+        cursor.execute(insert_fields, (website, username, password))
+
         db.commit()
 
         passwordVault()
 
     def removeEntry(input):
-        cursor.execute("DELETE FROM VAULT WHERE id = ?",(input,))
+        cursor.execute("DELETE FROM VAULT WHERE id = ?", (input,))
         db.commit()
 
         passwordVault()
 
-
     window.geometry("700x400")
 
     lbl1 = Label(window, text="Vault")
-    lbl1.grid(column=1,pady=10)
+    lbl1.grid(column=1, pady=10)
 
-    btn = Button(window,text="Add",command=addEntry)
-    btn.grid(column=1,pady=10)
+    btn = Button(window, text="Add", command=addEntry)
+    btn.grid(column=2, pady=10)
 
-    lbl1 = Label(window,text="website")
-    lbl1.grid(row=2,column=0,padx=80)
+    lbl1 = Label(window, text="website")
+    lbl1.grid(row=3, column=0, padx=80)
     lbl1 = Label(window, text="username")
-    lbl1.grid(row=2, column=1, padx=80)
+    lbl1.grid(row=3, column=1, padx=80)
     lbl1 = Label(window, text="password")
-    lbl1.grid(row=2, column=2, padx=80)
+    lbl1.grid(row=3, column=2, padx=80)
+    txts = Entry(window, width=30)
+    txts.grid(row=1, column=1, sticky='w')
 
-    cursor.execute("SELECT * FROM vault")
-    if(cursor.fetchall() != None):
-        i=0
+    tosearch = ""
+    def savetosearch():
+        tosearch = txts.get()
+
+
+    btn = Button(window, text="search", command=lambda:savetosearch())
+    btn.grid(row=1,column=0)
+
+    if tosearch == "":
+        cursor.execute("SELECT * FROM vault")
+    else:
+        cursor.execute("SELECT * FROM vault WHERE website like %?% ",(tosearch,))
+    if (cursor.fetchall() != None):
+        i = 0
+        j=i+2
         while True:
-            cursor.execute("SELECT * FROM vault")
+            cursor.execute("SELECT * FROM vault ORDER BY website")
             array = cursor.fetchall()
+            status = [0] * len(array)
+
+            def shpass(array,j):
+                if status[j-1] == 0:
+                    status[j - 1] = 1
+                    lblp.config(text=(array[j-1][3]))
+                elif status[j-1] == 1:
+                    status[j-1] = 0
+                    lblp.config(text="*******")
+
 
             lbl2 = Label(window, text=(array[i][1]))
-            lbl2.grid(column=0,row=i+3)
+            lbl2.grid(column=0, row=i + 4)
             lbl2 = Label(window, text=(array[i][2]))
-            lbl2.grid(column=1, row=i + 3)
-            lbl2 = Label(window, text=(array[i][3]))
-            lbl2.grid(column=2, row=i + 3)
+            lbl2.grid(column=1, row=i + 4)
+            lblp = Label(window, text='*******')
+            lblp.grid(column=2, row=i + 4)
 
-            btn = Button(window,text="delete",command=partial(removeEntry,array[i][0]))
-            btn.grid(column=3,row=i+3,pady=10)
+            btns = Button(window, text='show/hide', command= lambda:shpass(array,i))
+            btns.grid(column=2, row=i + 5)
 
-            i = i+1
+            btnc = Button(window, text="copy", command=pyperclip.copy(array[i][3]))
+            btnc.grid(column=3, row=i + 4)
+            btn = Button(window, text="delete", command=partial(removeEntry, array[i][0]))
+            btn.grid(column=4, row=i + 4, pady=10)
+
+            i = i + 1
             cursor.execute("SELECT * FROM vault")
-            if(len(cursor.fetchall())<=i):
+            if (len(cursor.fetchall()) <= i):
                 break
+
+
 cursor.execute("SELECT * FROM masterpassword ")
 if cursor.fetchall():
     loginScreen()
