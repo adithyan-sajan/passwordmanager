@@ -40,9 +40,6 @@ window = Tk()
 window.title("vault")
 
 
-
-
-
 def hashPassword(input):
     hash = hashlib.md5(input)
     hash = hash.hexdigest()
@@ -161,54 +158,62 @@ def passwordVault():
     txts = Entry(window, width=30)
     txts.grid(row=1, column=1, sticky='w')
 
+    global tosearch
     tosearch = ""
+
+    def search():
+
+        if (cursor.fetchall() != None):
+            i = 0
+            labels = []
+            while True:
+                print(tosearch)
+                if tosearch == "":
+                    cursor.execute("SELECT * FROM vault")
+                else:
+                    cursor.execute("SELECT * FROM vault WHERE website LIKE ?", ('%{}%'.format(tosearch),))
+
+                array = cursor.fetchall()
+                status = [0] * len(array)
+
+                def shpass(array, j):
+                    print(j)
+                    if status[j ] == 0:
+                        status[j ] = 1
+                        labels[j].config(text=(array[j][3]))
+                    elif status[j ] == 1:
+                        status[j ] = 0
+                        labels[j].config(text="*******")
+
+
+                lbl2 = Label(window, text=(array[i][1]))
+                lbl2.grid(column=0, row=i + 4)
+                lbl2 = Label(window, text=(array[i][2]))
+                lbl2.grid(column=1, row=i + 4)
+                lblp = Label(window, text='*******')
+                lblp.grid(column=2, row=i + 4)
+                labels.append(lblp)
+
+                btns = Button(window, text='show/hide', command=lambda index = i: shpass(array, index))
+                btns.grid(column=3, row=i + 4)
+
+                btnc = Button(window, text="copy", command=pyperclip.copy(array[i][3]))
+                btnc.grid(column=4, row=i + 4)
+                btn = Button(window, text="delete", command=partial(removeEntry, array[i][0]))
+                btn.grid(column=5, row=i + 4, pady=10)
+
+                i = i + 1
+                cursor.execute("SELECT * FROM vault")
+                if (len(cursor.fetchall()) <= i):
+                    break
+
     def savetosearch():
+        global tosearch
         tosearch = txts.get()
+        search()
 
-
-    btn = Button(window, text="search", command=lambda:savetosearch())
-    btn.grid(row=1,column=0)
-
-    if tosearch == "":
-        cursor.execute("SELECT * FROM vault")
-    else:
-        cursor.execute("SELECT * FROM vault WHERE website like %?% ",(tosearch,))
-    if (cursor.fetchall() != None):
-        i = 0
-        j=i+2
-        while True:
-            cursor.execute("SELECT * FROM vault ORDER BY website")
-            array = cursor.fetchall()
-            status = [0] * len(array)
-
-            def shpass(array,j):
-                if status[j-1] == 0:
-                    status[j - 1] = 1
-                    lblp.config(text=(array[j-1][3]))
-                elif status[j-1] == 1:
-                    status[j-1] = 0
-                    lblp.config(text="*******")
-
-
-            lbl2 = Label(window, text=(array[i][1]))
-            lbl2.grid(column=0, row=i + 4)
-            lbl2 = Label(window, text=(array[i][2]))
-            lbl2.grid(column=1, row=i + 4)
-            lblp = Label(window, text='*******')
-            lblp.grid(column=2, row=i + 4)
-
-            btns = Button(window, text='show/hide', command= lambda:shpass(array,i))
-            btns.grid(column=2, row=i + 5)
-
-            btnc = Button(window, text="copy", command=pyperclip.copy(array[i][3]))
-            btnc.grid(column=3, row=i + 4)
-            btn = Button(window, text="delete", command=partial(removeEntry, array[i][0]))
-            btn.grid(column=4, row=i + 4, pady=10)
-
-            i = i + 1
-            cursor.execute("SELECT * FROM vault")
-            if (len(cursor.fetchall()) <= i):
-                break
+    btn = Button(window, text="search", command=lambda: savetosearch())
+    btn.grid(row=1, column=0)
 
 
 cursor.execute("SELECT * FROM masterpassword ")
