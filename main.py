@@ -5,7 +5,7 @@ from functools import partial
 import pyperclip
 
 # -----------------------------DB-----------------------------------------
-
+#testing git
 with sqlite3.connect("vault.db") as db:
     cursor = db.cursor()
 
