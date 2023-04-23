@@ -3,9 +3,11 @@ from tkinter import *
 from tkinter import simpledialog
 from functools import partial
 import pyperclip
-
+import random
+import string
+import tkinter as tk
 # -----------------------------DB-----------------------------------------
-#testing git
+
 with sqlite3.connect("vault.db") as db:
     cursor = db.cursor()
 
@@ -24,7 +26,13 @@ username TEXT NOT NULL,
 password TEXT NOT NULL
 );
 """)
-
+# ------------------------PassKey_Gen----------------------------------------
+def gen_pass():
+    password = ''
+    characters = string.ascii_letters + string.digits
+    for i in range(12):
+        password += random.choice(characters)
+    return password
 
 # ------------------------------Pop-up---------------------------------------
 
@@ -32,6 +40,35 @@ def popUp(text):
     answer = simpledialog.askstring("input String", text)
     return answer
 
+def create_popup_window():
+
+    popup_window = tk.Toplevel()
+
+
+    tk.Label(popup_window, text="Enter Password:").pack()
+    input_entry = tk.Entry(popup_window)
+    input_entry.pack()
+
+
+    def submit_text():
+        text = input_entry.get()
+        popup_window.destroy()
+        popup_window.result = text
+
+    submit_button = tk.Button(popup_window, text="Submit", command=submit_text)
+    submit_button.pack()
+
+    def autofill_textbox():
+        text = gen_pass()
+        input_entry.insert(0,text)
+
+    autofill_button = tk.Button(popup_window, text="Autofill", command=autofill_textbox)
+    autofill_button.pack()
+
+    popup_window.wait_window()
+
+
+    return popup_window.result
 
 # ----------------------------GUI--------------------------------------------
 
@@ -49,7 +86,7 @@ def hashPassword(input):
 
 def firstScreen():
     window.geometry("300x200")
-    lbl1 = Label(window, text="Create MasterKey")
+    lbl1 = Label(window, text="Create a MasterKey")
     lbl1.config(anchor=CENTER)
     lbl1.pack()
 
@@ -122,7 +159,7 @@ def passwordVault():
         text3 = "Password"
         website = popUp(text1)
         username = popUp(text2)
-        password = popUp(text3)
+        password = create_popup_window()
 
         insert_fields = """
         INSERT INTO vault(website,username,password)
@@ -141,7 +178,7 @@ def passwordVault():
 
         passwordVault()
 
-    window.geometry("700x400")
+    window.geometry("900x400")
 
     lbl1 = Label(window, text="Vault")
     lbl1.grid(column=1, pady=10)
@@ -158,14 +195,41 @@ def passwordVault():
     txts = Entry(window, width=30)
     txts.grid(row=1, column=1, sticky='w')
 
+
+
     global tosearch
     tosearch = ""
 
     def search():
+        def savetosearch():
+            global tosearch
+            tosearch = txts.get()
+            search()
+
+
 
         if (cursor.fetchall() != None):
             i = 0
             labels = []
+
+
+
+            for widget in window.winfo_children():
+                widget.destroy()
+            lbl1 = Label(window, text="Vault")
+            lbl1.grid(column=1, pady=10)
+            btn = Button(window, text="Search", command=lambda: savetosearch())
+            btn.grid(row=1, column=0)
+            btn = Button(window, text="Add New Entry", command=addEntry)
+            btn.grid(row=1 ,column=2, pady=10)
+            lbl1 = Label(window, text="website")
+            lbl1.grid(row=3, column=0, padx=80)
+            lbl1 = Label(window, text="username")
+            lbl1.grid(row=3, column=1, padx=80)
+            lbl1 = Label(window, text="password")
+            lbl1.grid(row=3, column=2, padx=80)
+            txts = Entry(window, width=30)
+            txts.grid(row=1, column=1, sticky='w')
             while True:
                 print(tosearch)
                 if tosearch == "":
@@ -178,13 +242,14 @@ def passwordVault():
 
                 def shpass(array, j):
                     print(j)
-                    if status[j ] == 0:
-                        status[j ] = 1
+                    if status[j] == 0:
+                        status[j] = 1
                         labels[j].config(text=(array[j][3]))
-                    elif status[j ] == 1:
-                        status[j ] = 0
+                    elif status[j] == 1:
+                        status[j] = 0
                         labels[j].config(text="*******")
-
+                def cpypass(array,j):
+                    pyperclip.copy(array[j][3])
 
                 lbl2 = Label(window, text=(array[i][1]))
                 lbl2.grid(column=0, row=i + 4)
@@ -194,11 +259,12 @@ def passwordVault():
                 lblp.grid(column=2, row=i + 4)
                 labels.append(lblp)
 
-                btns = Button(window, text='show/hide', command=lambda index = i: shpass(array, index))
+                btns = Button(window, text='show/hide', command=lambda index=i: shpass(array, index))
                 btns.grid(column=3, row=i + 4)
 
-                btnc = Button(window, text="copy", command=pyperclip.copy(array[i][3]))
+                btnc = Button(window, text="copy", command=lambda index=i: cpypass(array, index))
                 btnc.grid(column=4, row=i + 4)
+
                 btn = Button(window, text="delete", command=partial(removeEntry, array[i][0]))
                 btn.grid(column=5, row=i + 4, pady=10)
 
@@ -206,14 +272,8 @@ def passwordVault():
                 cursor.execute("SELECT * FROM vault")
                 if (len(cursor.fetchall()) <= i):
                     break
+    search()
 
-    def savetosearch():
-        global tosearch
-        tosearch = txts.get()
-        search()
-
-    btn = Button(window, text="search", command=lambda: savetosearch())
-    btn.grid(row=1, column=0)
 
 
 cursor.execute("SELECT * FROM masterpassword ")
