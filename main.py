@@ -6,49 +6,57 @@ import pyperclip
 import random
 import string
 import tkinter as tk
+from tkinter import ttk
+
 # -----------------------------DB-----------------------------------------
 
 with sqlite3.connect("vault.db") as db:
     cursor = db.cursor()
 
-cursor.execute("""
+cursor.execute(
+    """
 CREATE TABLE IF NOT EXISTS masterpassword(
 id INTEGER PRIMARY KEY,
 password TEXT NOT NULL
 );
-""")
+"""
+)
 
-cursor.execute("""
+cursor.execute(
+    """
 CREATE TABLE IF NOT EXISTS vault(
 id INTEGER PRIMARY KEY,
 website TEXT NOT NULL,
 username TEXT NOT NULL,
 password TEXT NOT NULL
 );
-""")
+"""
+)
+
+
 # ------------------------PassKey_Gen----------------------------------------
 def gen_pass():
-    password = ''
+    password = ""
     characters = string.ascii_letters + string.digits
     for i in range(12):
         password += random.choice(characters)
     return password
 
+
 # ------------------------------Pop-up---------------------------------------
+
 
 def popUp(text):
     answer = simpledialog.askstring("input String", text)
     return answer
 
+
 def create_popup_window():
-
     popup_window = tk.Toplevel()
-
 
     tk.Label(popup_window, text="Enter Password:").pack()
     input_entry = tk.Entry(popup_window)
     input_entry.pack()
-
 
     def submit_text():
         text = input_entry.get()
@@ -60,15 +68,16 @@ def create_popup_window():
 
     def autofill_textbox():
         text = gen_pass()
-        input_entry.insert(0,text)
+        input_entry.delete(0, "end")
+        input_entry.insert(0, text)
 
     autofill_button = tk.Button(popup_window, text="Autofill", command=autofill_textbox)
     autofill_button.pack()
 
     popup_window.wait_window()
 
-
     return popup_window.result
+
 
 # ----------------------------GUI--------------------------------------------
 
@@ -105,15 +114,15 @@ def firstScreen():
 
     def savePassword():
         if txt1.get() == txt2.get():
-            hashedPassword = hashPassword(txt1.get().encode('utf-8'))
+            hashedPassword = hashPassword(txt1.get().encode("utf-8"))
             insert_password = """INSERT INTO masterpassword(password)
             VALUES(?)"""
             cursor.execute(insert_password, [(hashedPassword)])
             db.commit()
             passwordVault()
         else:
-            txt1.delete(0, 'end')
-            txt2.delete(0, 'end')
+            txt1.delete(0, "end")
+            txt2.delete(0, "end")
             lbl3.config(text="Keys don't match")
 
     btn1 = Button(window, text="Submit", command=savePassword)
@@ -134,8 +143,11 @@ def loginScreen():
     lbl2.pack()
 
     def getMasterKey():
-        checkHashedPassword = hashPassword(txt1.get().encode('utf-8'))
-        cursor.execute("SELECT * FROM masterpassword WHERE id = 1 AND password = ?", [(checkHashedPassword)])
+        checkHashedPassword = hashPassword(txt1.get().encode("utf-8"))
+        cursor.execute(
+            "SELECT * FROM masterpassword WHERE id = 1 AND password = ?",
+            [(checkHashedPassword)],
+        )
         return cursor.fetchall()
 
     def checkPassword():
@@ -178,7 +190,7 @@ def passwordVault():
 
         passwordVault()
 
-    window.geometry("900x400")
+    window.geometry("800x400")
 
     lbl1 = Label(window, text="Vault")
     lbl1.grid(column=1, pady=10)
@@ -193,9 +205,7 @@ def passwordVault():
     lbl1 = Label(window, text="password")
     lbl1.grid(row=3, column=2, padx=80)
     txts = Entry(window, width=30)
-    txts.grid(row=1, column=1, sticky='w')
-
-
+    txts.grid(row=1, column=1, sticky="w")
 
     global tosearch
     tosearch = ""
@@ -206,36 +216,59 @@ def passwordVault():
             tosearch = txts.get()
             search()
 
-
-
-        if (cursor.fetchall() != None):
+        if cursor.fetchall() != None:
             i = 0
             labels = []
 
-
-
             for widget in window.winfo_children():
                 widget.destroy()
-            lbl1 = Label(window, text="Vault")
+
+            nf = Frame(window)
+            nf.grid(row=4, column=0, columnspan=1)
+
+            lbl1 = Label(nf, text="Vault")
             lbl1.grid(column=1, pady=10)
-            btn = Button(window, text="Search", command=lambda: savetosearch())
+            btn = Button(nf, text="Search", command=lambda: savetosearch())
             btn.grid(row=1, column=0)
-            btn = Button(window, text="Add New Entry", command=addEntry)
-            btn.grid(row=1 ,column=2, pady=10)
-            lbl1 = Label(window, text="website")
-            lbl1.grid(row=3, column=0, padx=80)
-            lbl1 = Label(window, text="username")
-            lbl1.grid(row=3, column=1, padx=80)
-            lbl1 = Label(window, text="password")
-            lbl1.grid(row=3, column=2, padx=80)
-            txts = Entry(window, width=30)
-            txts.grid(row=1, column=1, sticky='w')
+            btn = Button(nf, text="Add New Entry", command=addEntry)
+            btn.grid(row=1, column=2, pady=10)
+
+            lbl1 = Label(nf, text="website")
+            lbl1.grid(row=3, column=0, padx=50)
+            lbl1 = Label(nf, text="username")
+            lbl1.grid(row=3, column=1, padx=50)
+            lbl1 = Label(nf, text="password")
+            lbl1.grid(row=3, column=2, padx=50)
+            txts = Entry(nf, width=30)
+            txts.grid(row=1, column=1, sticky="w")
+
+            main_frame = Frame(window)
+            main_frame.grid(row=5, column=0, columnspan=3)
+
+            canvas = Canvas(main_frame, width=750)
+            canvas.pack(side=LEFT, expand=1, fill=BOTH, padx=0)
+
+            scrollbar = ttk.Scrollbar(main_frame, orient=VERTICAL, command=canvas.yview)
+            scrollbar.pack(side=RIGHT, fill=Y)
+
+            canvas.configure(yscrollcommand=scrollbar.set)
+            canvas.bind(
+                "<Configure>",
+                lambda e: canvas.configure(scrollregion=canvas.bbox("all")),
+            )
+
+            contents_frame = Frame(canvas)
+            canvas.create_window((0, 0), window=contents_frame, anchor="nw")
+
             while True:
                 print(tosearch)
                 if tosearch == "":
                     cursor.execute("SELECT * FROM vault")
                 else:
-                    cursor.execute("SELECT * FROM vault WHERE website LIKE ?", ('%{}%'.format(tosearch),))
+                    cursor.execute(
+                        "SELECT * FROM vault WHERE website LIKE ?",
+                        ("%{}%".format(tosearch),),
+                    )
 
                 array = cursor.fetchall()
                 status = [0] * len(array)
@@ -248,32 +281,45 @@ def passwordVault():
                     elif status[j] == 1:
                         status[j] = 0
                         labels[j].config(text="*******")
-                def cpypass(array,j):
+
+                def cpypass(array, j):
                     pyperclip.copy(array[j][3])
 
-                lbl2 = Label(window, text=(array[i][1]))
-                lbl2.grid(column=0, row=i + 4)
-                lbl2 = Label(window, text=(array[i][2]))
-                lbl2.grid(column=1, row=i + 4)
-                lblp = Label(window, text='*******')
-                lblp.grid(column=2, row=i + 4)
+                lbl2 = Label(contents_frame, text=(array[i][1]))
+                lbl2.grid(column=0, row=i, padx=(110, 50))
+                lbl2 = Label(contents_frame, text=(array[i][2]))
+                lbl2.grid(column=1, row=i, padx=(100, 50))
+                lblp = Label(contents_frame, text="*******")
+                lblp.grid(column=2, row=i, padx=(75, 75))
                 labels.append(lblp)
 
-                btns = Button(window, text='show/hide', command=lambda index=i: shpass(array, index))
-                btns.grid(column=3, row=i + 4)
+                btns = Button(
+                    contents_frame,
+                    text="show/hide",
+                    command=lambda index=i: shpass(array, index),
+                )
+                btns.grid(column=3, row=i)
 
-                btnc = Button(window, text="copy", command=lambda index=i: cpypass(array, index))
-                btnc.grid(column=4, row=i + 4)
+                btnc = Button(
+                    contents_frame,
+                    text="copy",
+                    command=lambda index=i: cpypass(array, index),
+                )
+                btnc.grid(column=4, row=i)
 
-                btn = Button(window, text="delete", command=partial(removeEntry, array[i][0]))
-                btn.grid(column=5, row=i + 4, pady=10)
+                btn = Button(
+                    contents_frame,
+                    text="delete",
+                    command=partial(removeEntry, array[i][0]),
+                )
+                btn.grid(column=5, row=i, pady=10)
 
                 i = i + 1
                 cursor.execute("SELECT * FROM vault")
-                if (len(cursor.fetchall()) <= i):
+                if len(cursor.fetchall()) <= i:
                     break
-    search()
 
+    search()
 
 
 cursor.execute("SELECT * FROM masterpassword ")
