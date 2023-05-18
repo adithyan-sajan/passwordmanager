@@ -7,7 +7,8 @@ import random
 import string
 import tkinter as tk
 from tkinter import ttk
-
+from cryptography.fernet import Fernet
+import base64
 # -----------------------------DB-----------------------------------------
 
 with sqlite3.connect("vault.db") as db:
@@ -81,7 +82,7 @@ def create_popup_window():
 
 # ----------------------------GUI--------------------------------------------
 
-
+cipher=""
 window = Tk()
 window.title("vault")
 
@@ -119,6 +120,12 @@ def firstScreen():
             VALUES(?)"""
             cursor.execute(insert_password, [(hashedPassword)])
             db.commit()
+            global cipher
+            keyroot = txt1.get()
+            key = keyroot.encode("utf-8")
+            hashed_key = hashlib.sha256(key).digest()[:32]
+            base64_encoded_key = base64.urlsafe_b64encode(hashed_key)
+            cipher = Fernet(base64_encoded_key)
             passwordVault()
         else:
             txt1.delete(0, "end")
@@ -153,6 +160,12 @@ def loginScreen():
     def checkPassword():
         match = getMasterKey()
         if match:
+            global cipher
+            keyroot = txt1.get()
+            key = keyroot.encode("utf-8")
+            hashed_key = hashlib.sha256(key).digest()[:32]
+            base64_encoded_key = base64.urlsafe_b64encode(hashed_key)
+            cipher = Fernet(base64_encoded_key)
             passwordVault()
         else:
             lbl2.config(text="wrong password")
@@ -168,17 +181,20 @@ def passwordVault():
     def addEntry():
         text1 = "Website"
         text2 = "Username"
-        text3 = "Password"
         website = popUp(text1)
         username = popUp(text2)
         password = create_popup_window()
+
+        encrypted_website = cipher.encrypt(website.encode())
+        encrypted_username = cipher.encrypt(username.encode())
+        encrypted_password = cipher.encrypt(password.encode())
 
         insert_fields = """
         INSERT INTO vault(website,username,password)
         VALUES(?,?,?)
         """
 
-        cursor.execute(insert_fields, (website, username, password))
+        cursor.execute(insert_fields, (encrypted_website, encrypted_username, encrypted_password))
 
         db.commit()
 
@@ -236,9 +252,9 @@ def passwordVault():
             lbl1 = Label(nf, text="website")
             lbl1.grid(row=3, column=0, padx=50)
             lbl1 = Label(nf, text="username")
-            lbl1.grid(row=3, column=1, padx=50)
+            lbl1.grid(row=3, column=1, padx=40)
             lbl1 = Label(nf, text="password")
-            lbl1.grid(row=3, column=2, padx=50)
+            lbl1.grid(row=3, column=2, padx=40)
             txts = Entry(nf, width=30)
             txts.grid(row=1, column=1, sticky="w")
 
@@ -274,24 +290,26 @@ def passwordVault():
                 status = [0] * len(array)
 
                 def shpass(array, j):
-                    print(j)
                     if status[j] == 0:
                         status[j] = 1
-                        labels[j].config(text=(array[j][3]))
+                        labels[j].config(text=cipher.decrypt(array[j][3]).decode())
                     elif status[j] == 1:
                         status[j] = 0
                         labels[j].config(text="*******")
 
                 def cpypass(array, j):
-                    pyperclip.copy(array[j][3])
+                    decrypted_password = cipher.decrypt(array[j][3]).decode()
+                    pyperclip.copy(decrypted_password)
 
-                lbl2 = Label(contents_frame, text=(array[i][1]))
+                lbl2 = Label(contents_frame, text=cipher.decrypt(array[i][1]).decode())
                 lbl2.grid(column=0, row=i, padx=(110, 50))
-                lbl2 = Label(contents_frame, text=(array[i][2]))
-                lbl2.grid(column=1, row=i, padx=(100, 50))
+
+                lbl2 = Label(contents_frame, text=cipher.decrypt(array[i][2]).decode())
+                lbl2.grid(column=1, row=i, padx=(100, 70))
                 lblp = Label(contents_frame, text="*******")
                 lblp.grid(column=2, row=i, padx=(75, 75))
                 labels.append(lblp)
+
 
                 btns = Button(
                     contents_frame,
