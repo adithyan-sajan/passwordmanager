@@ -1,3 +1,8 @@
+#--------------------Requirements------------------------
+# pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
+# pip install pyperclip cryptography
+
+#--------------------Imports-----------------------------
 import sqlite3, hashlib
 from tkinter import *
 from tkinter import simpledialog
@@ -9,6 +14,12 @@ import tkinter as tk
 from tkinter import ttk
 from cryptography.fernet import Fernet
 import base64
+import os
+from google.oauth2 import credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+
 # -----------------------------DB-----------------------------------------
 
 with sqlite3.connect("vault.db") as db:
@@ -33,7 +44,26 @@ password TEXT NOT NULL
 );
 """
 )
+#---------------------------Backup-------------------------------------------
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
+def authenticate():
+    flow = InstalledAppFlow.from_client_secrets_file(
+        r'D:\Code rep\pythonProject\client_secret.json', SCOPES)
+    creds = flow.run_local_server(port=0)
+    return creds
+
+def upload_file_to_drive(file_path, drive_service):
+    file_name = os.path.basename(file_path)
+    metadata = {'name': file_name}
+    media = MediaFileUpload(file_path, resumable=True)
+    drive_service.files().create(body=metadata, media_body=media).execute()
+
+def backup():
+    credentials = authenticate()
+    drive_service = build('drive', 'v3', credentials=credentials)
+    file_path = 'vault.db'  # Replace with the path to the file you want to upload
+    upload_file_to_drive(file_path, drive_service)
 
 # ------------------------PassKey_Gen----------------------------------------
 def gen_pass():
@@ -208,12 +238,6 @@ def passwordVault():
 
     window.geometry("800x400")
 
-    lbl1 = Label(window, text="Vault")
-    lbl1.grid(column=1, pady=10)
-
-    btn = Button(window, text="Add", command=addEntry)
-    btn.grid(column=2, pady=10)
-
     lbl1 = Label(window, text="website")
     lbl1.grid(row=3, column=0, padx=80)
     lbl1 = Label(window, text="username")
@@ -248,6 +272,8 @@ def passwordVault():
             btn.grid(row=1, column=0)
             btn = Button(nf, text="Add New Entry", command=addEntry)
             btn.grid(row=1, column=2, pady=10)
+            btn2 = Button(nf, text="BackUp", command=backup)
+            btn2.grid(row=1, column=3, pady=10)
 
             lbl1 = Label(nf, text="website")
             lbl1.grid(row=3, column=0, padx=50)
