@@ -215,7 +215,7 @@ def passwordVault():
         username = popUp(text2)
         password = create_popup_window()
 
-        encrypted_website = cipher.encrypt(website.encode())
+        encrypted_website = website
         encrypted_username = cipher.encrypt(username.encode())
         encrypted_password = cipher.encrypt(password.encode())
 
@@ -301,6 +301,8 @@ def passwordVault():
             lbl1.grid(row=0, column=2, padx=40)
             txts = Entry(nf, width=30)
             txts.grid(row=1, column=1, padx=10 ,sticky="w")
+
+
             while True:
                 print(tosearch)
                 if tosearch == "":
@@ -312,6 +314,7 @@ def passwordVault():
                     )
 
                 array = cursor.fetchall()
+                print(array)
                 status = [0] * len(array)
 
                 def shpass(array, j):
@@ -326,7 +329,7 @@ def passwordVault():
                     decrypted_password = cipher.decrypt(array[j][3]).decode()
                     pyperclip.copy(decrypted_password)
 
-                lbl2 = Label(contents_frame, text=cipher.decrypt(array[i][1]).decode())
+                lbl2 = Label(contents_frame, text=array[i][1])
                 lbl2.grid(column=0, row=i+1, padx=(50, 50))
 
                 lbl2 = Label(contents_frame, text=cipher.decrypt(array[i][2]).decode())
