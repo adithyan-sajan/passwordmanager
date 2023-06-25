@@ -84,7 +84,7 @@ def popUp(text):
 
 def create_popup_window():
     popup_window = tk.Toplevel()
-
+    popup_window.geometry("300x150")
     tk.Label(popup_window, text="Enter Password:").pack()
     input_entry = tk.Entry(popup_window)
     input_entry.pack()
@@ -95,7 +95,7 @@ def create_popup_window():
         popup_window.result = text
 
     submit_button = tk.Button(popup_window, text="Submit", command=submit_text)
-    submit_button.pack()
+    submit_button.pack(pady=10)
 
     def autofill_textbox():
         text = gen_pass()
@@ -103,7 +103,7 @@ def create_popup_window():
         input_entry.insert(0, text)
 
     autofill_button = tk.Button(popup_window, text="Autofill", command=autofill_textbox)
-    autofill_button.pack()
+    autofill_button.pack(pady=5)
 
     popup_window.wait_window()
 
@@ -245,7 +245,7 @@ def passwordVault():
     lbl1 = Label(window, text="password")
     lbl1.grid(row=3, column=2, padx=80)
     txts = Entry(window, width=30)
-    txts.grid(row=1, column=1, sticky="w")
+    txts.grid(row=0, column=1, sticky="w")
 
     global tosearch
     tosearch = ""
@@ -271,25 +271,18 @@ def passwordVault():
             btn = Button(nf, text="Search", command=lambda: savetosearch())
             btn.grid(row=1, column=0)
             btn = Button(nf, text="Add New Entry", command=addEntry)
-            btn.grid(row=1, column=2, pady=10)
+            btn.grid(row=1, column=2,  padx=10, pady=10)
             btn2 = Button(nf, text="BackUp", command=backup)
             btn2.grid(row=1, column=3, pady=10)
 
-            lbl1 = Label(nf, text="website")
-            lbl1.grid(row=3, column=0, padx=50)
-            lbl1 = Label(nf, text="username")
-            lbl1.grid(row=3, column=1, padx=40)
-            lbl1 = Label(nf, text="password")
-            lbl1.grid(row=3, column=2, padx=40)
-            txts = Entry(nf, width=30)
-            txts.grid(row=1, column=1, sticky="w")
 
             main_frame = Frame(window)
             main_frame.grid(row=5, column=0, columnspan=3)
 
             canvas = Canvas(main_frame, width=750)
             canvas.pack(side=LEFT, expand=1, fill=BOTH, padx=0)
-
+            contents_frame = Frame(canvas)
+            canvas.create_window((0, 0), window=contents_frame, anchor="nw")
             scrollbar = ttk.Scrollbar(main_frame, orient=VERTICAL, command=canvas.yview)
             scrollbar.pack(side=RIGHT, fill=Y)
 
@@ -299,9 +292,15 @@ def passwordVault():
                 lambda e: canvas.configure(scrollregion=canvas.bbox("all")),
             )
 
-            contents_frame = Frame(canvas)
-            canvas.create_window((0, 0), window=contents_frame, anchor="nw")
 
+            lbl1 = Label(contents_frame, text="website")
+            lbl1.grid(row=0, column=0, padx=50)
+            lbl1 = Label(contents_frame, text="username")
+            lbl1.grid(row=0, column=1, padx=40)
+            lbl1 = Label(contents_frame, text="password")
+            lbl1.grid(row=0, column=2, padx=40)
+            txts = Entry(nf, width=30)
+            txts.grid(row=1, column=1, padx=10 ,sticky="w")
             while True:
                 print(tosearch)
                 if tosearch == "":
@@ -328,12 +327,12 @@ def passwordVault():
                     pyperclip.copy(decrypted_password)
 
                 lbl2 = Label(contents_frame, text=cipher.decrypt(array[i][1]).decode())
-                lbl2.grid(column=0, row=i, padx=(110, 50))
+                lbl2.grid(column=0, row=i+1, padx=(50, 50))
 
                 lbl2 = Label(contents_frame, text=cipher.decrypt(array[i][2]).decode())
-                lbl2.grid(column=1, row=i, padx=(100, 70))
+                lbl2.grid(column=1, row=i+1, padx=(70, 70))
                 lblp = Label(contents_frame, text="*******")
-                lblp.grid(column=2, row=i, padx=(75, 75))
+                lblp.grid(column=2, row=i+1, padx=(75, 75))
                 labels.append(lblp)
 
 
@@ -342,21 +341,21 @@ def passwordVault():
                     text="show/hide",
                     command=lambda index=i: shpass(array, index),
                 )
-                btns.grid(column=3, row=i)
+                btns.grid(column=3, row=i+1)
 
                 btnc = Button(
                     contents_frame,
                     text="copy",
                     command=lambda index=i: cpypass(array, index),
                 )
-                btnc.grid(column=4, row=i)
+                btnc.grid(column=4, row=i+1)
 
                 btn = Button(
                     contents_frame,
                     text="delete",
                     command=partial(removeEntry, array[i][0]),
                 )
-                btn.grid(column=5, row=i, pady=10)
+                btn.grid(column=5, row=i+1, pady=10)
 
                 i = i + 1
                 cursor.execute("SELECT * FROM vault")
